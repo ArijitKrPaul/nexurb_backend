@@ -163,7 +163,7 @@ app.post("/addItem", async (req, res) => {
   console.log(req.body);
   try {
     const q =
-      await sql`INSERT into products(name,quantity,price,dept_id) VALUES(${req.body.name},${req.body.quantity},${req.body.price},${req.body.dept_id})`;
+      await sql`INSERT into products(name,quantity,price,dept_id,unit) VALUES(${req.body.name},${req.body.quantity},${req.body.price},${req.body.dept_id},${req.body.unit})`;
     return res.status(200).json({
       message: "item added",
     });
