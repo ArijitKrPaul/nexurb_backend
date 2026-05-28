@@ -217,6 +217,53 @@ app.delete("/deleteItem", async (req, res) => {
   }
 });
 
+//fetching users with the role of user
+app.get("/newUser", async (req, res) => {
+  try {
+    const q = await sql`SELECT user_id,name,email FROM users where role='user'`;
+    return res.status(200).json(q);
+  } catch (err) {
+    return res.status(404).json("error has occured");
+  }
+});
+
+app.put("/updateUser", async (req, res) => {
+  console.log(req.body);
+
+  try {
+    await sql`
+      UPDATE USERS 
+      SET role = ${req.body.role},
+          dept_id = ${req.body.dept_id}
+      WHERE user_id = ${req.body.user_id}
+    `;
+
+    return res.status(200).json({
+      message: "updated successfully",
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(400).json({
+      error: error.message,
+    });
+  }
+});
+
+app.get("/deptUsers", async (req, res) => {
+  console.log(req.query);
+  try {
+    const data =
+      await sql`select user_id,name,email from users where dept_id=${req.query.dept_id}`;
+    return res.status(200).json(data);
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(400)
+      .json({ message: "error has occured while fetching users" });
+  }
+});
+
 app.get("/", (req, res) => {
   res.send("Server running successfully");
 });
