@@ -8,6 +8,11 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+app.use((req, res, next) => {
+  console.log(new Date().toISOString(), req.method, req.originalUrl);
+  next();
+});
+
 //USER FETCH
 app.get("/user", async (req, res) => {
   try {
@@ -73,7 +78,6 @@ app.post("/login", async (req, res) => {
 
 //PROJECT PAGE
 app.post("/project", async (req, res) => {
-  console.log(req.body);
   try {
     await sql`INSERT into project ("Name","type","description","dept_name","state","city") VALUES (${req.body.name},${req.body.type},${req.body.description},${req.body.dept_name},${req.body.state},${req.body.city})`;
 
@@ -85,7 +89,6 @@ app.post("/project", async (req, res) => {
 });
 
 app.get("/project", async (req, res) => {
-  console.log(req.query);
   try {
     const q =
       await sql`SELECT * from project where state like ${req.query.state} and city like ${req.query.city}`;
@@ -98,10 +101,9 @@ app.get("/project", async (req, res) => {
 
 //DEPT_REG
 app.post("/deptRegister", async (req, res) => {
-  console.log(req.body);
   try {
     const q =
-      await sql`INSERT into notify("dept_name","state","city","location") VALUES (${req.body.name},${req.body.state},${req.body.city},${req.body.location})`;
+      await sql`INSERT into notify("dept_name","state","city","location","user_id") VALUES (${req.body.name},${req.body.state},${req.body.city},${req.body.location},${req.body.user_id})`;
     return res.status(200).json("dept added");
   } catch (err) {
     return res.status(400).json("error has occured");
@@ -120,8 +122,6 @@ app.get("/deptRegister", async (req, res) => {
 
 //DEPT DECLINE
 app.delete("/deptRegister/:id", async (req, res) => {
-  console.log(req.params.id);
-
   const id = req.params.id;
 
   try {
@@ -160,7 +160,6 @@ app.get("/deptAccept", async (req, res) => {
 
 //inventory adding a new product
 app.post("/addItem", async (req, res) => {
-  console.log(req.body);
   try {
     const q =
       await sql`INSERT into products(name,quantity,price,dept_id,unit) VALUES(${req.body.name},${req.body.quantity},${req.body.price},${req.body.dept_id},${req.body.unit})`;
@@ -176,7 +175,7 @@ app.post("/addItem", async (req, res) => {
 //getting inventory products
 app.get("/product/:dept_id", async (req, res) => {
   const id = req.params.dept_id;
-  console.log(id);
+
   try {
     const q =
       await sql`SELECT product_id,name,price,quantity from products where dept_id=${id}`;
@@ -220,7 +219,7 @@ app.delete("/deleteItem", async (req, res) => {
 //fetching users with the role of user
 app.get("/newUser", async (req, res) => {
   try {
-    const q = await sql`SELECT user_id,name,email FROM users where role='user'`;
+    const q = await sql`SELECT user_id,name,email FROM users where role='User'`;
     return res.status(200).json(q);
   } catch (err) {
     return res.status(404).json("error has occured");
@@ -228,8 +227,6 @@ app.get("/newUser", async (req, res) => {
 });
 
 app.put("/updateUser", async (req, res) => {
-  console.log(req.body);
-
   try {
     await sql`
       UPDATE USERS 
@@ -251,16 +248,52 @@ app.put("/updateUser", async (req, res) => {
 });
 
 app.get("/deptUsers", async (req, res) => {
-  console.log(req.query);
   try {
     const data =
-      await sql`select user_id,name,email from users where dept_id=${req.query.dept_id}`;
+      await sql`select user_id,name,email,role from users where dept_id=${req.query.dept_id} and role in('Project Manager','Inventory Manager','Employee','Support')`;
     return res.status(200).json(data);
   } catch (error) {
     console.log(error);
     return res
       .status(400)
       .json({ message: "error has occured while fetching users" });
+  }
+});
+
+//adding dept to user on accepting dept req notification
+app.put("/addDeptId", async (req, res) => {
+  try {
+    await sql`
+      UPDATE USERS 
+      SET dept_id = ${req.body.id},
+          role='Admin'
+      WHERE user_id = ${req.body.user_id}
+    `;
+  } catch (error) {
+    return res.status(400).json({
+      message: "error as occured",
+    });
+  }
+});
+
+app.put("/delUser", async (req, res) => {
+  try {
+    const data =
+      await sql`UPDATE USERS SET role='User',dept_id=NULL where user_id=${req.body.user_id}`;
+    return res.status(200).json("Role updated successfully");
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+app.put("/updateRole", async (req, res) => {
+  try {
+    const q =
+      await sql`UPDATE USERS SET role=${req.body.role} where user_id=${req.body.user_id}`;
+    return res.status(200).json("Role updated successfully");
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json("Error has occured while updating the role");
   }
 });
 
